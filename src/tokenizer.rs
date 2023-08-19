@@ -95,6 +95,9 @@ impl<'a> Tokenizer<'a> {
                     self.position += 1;
                     break
                 }
+                b'\r' => {
+                    // Need to handle carriage return(?)
+                }
                 b'\0' => {
                     // Parse Error
                 }
@@ -102,6 +105,36 @@ impl<'a> Tokenizer<'a> {
                     // EOF, emit end of file
                 }
                 _ => {},
+            }
+        }
+    }
+
+    fn rawtext_state(&mut self) {
+        while self.position < self.raw_html.len() {
+            match self.raw_html[self.position] {
+                b'<' => {
+                    self.state = State::RawtextLessThanSign;
+                    self.position += 1;
+                }
+                b'\0' => {
+                    // Parse Error
+                }
+                EOF => {
+                    // EOF, emit end of file
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn rawtext_less_than_sign_state(&mut self) {
+        match self.raw_html[self.position] {
+            b'/' => {
+                self.temp_buffer.clear();
+                self.state = State::RawtextEndTagOpen;
+            }
+            _ => {
+                self.state = State::Rawtext;
             }
         }
     }
