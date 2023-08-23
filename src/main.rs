@@ -5,7 +5,7 @@ use tokens::Token;
 use tokenizer::Tokenizer;
 
 fn main() {
-    let html = "<h1><p><body hello><h1><h1><h1><h1 id=\"guide-service\">";
+    let html = "<h1><p><body hello><h1><h1><h1><h1 id=\"guide-service\" id-two='hello' id-three=wow>";
     let mut tokenizer = Tokenizer::new(html);
     tokenizer.tokenize();
     for token in tokenizer.tokens {
