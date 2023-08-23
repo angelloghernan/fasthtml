@@ -1,17 +1,38 @@
+use phf::phf_map;
 
+#[derive(Debug)]
 pub struct Attribute {
-    name_begin: u16,
-    value_begin: u16,
-    name_size: u16,
-    value_size: u16,
+    pub name_begin: u16,
+    pub name_size: u16,
+    pub value_begin: u16,
+    pub value_size: u16,
     // Maybe add error type as in lexbor?
 }
 
+impl Attribute {
+    pub fn new(name_begin: u16, name_size: u16, value_begin: u16, value_size: u16) -> Self {
+        Attribute {
+            name_begin,
+            name_size,
+            value_begin,
+            value_size
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.name_begin = 0;
+        self.value_begin = 0;
+        self.name_size = 0;
+        self.value_size = 0;
+    }
+}
+
+#[derive(Debug)]
 pub struct Token {
-    pub attributes: Box<[Attribute]>,
-    pub attr_start:   u32,
-    pub attr_size:    u16,
-    pub text_start:   u32,
+    pub attributes: Option<Box<[Attribute]>>,
+    pub start:        u32,
+    pub end:          u32,
+    pub text_off:     u16,
     pub text_size:    u32,
     pub flags:        u8,
     pub token_id:     TagID,
@@ -19,21 +40,47 @@ pub struct Token {
 
 impl Token {
     pub fn new(attributes: Box<[Attribute]>, 
-               attr_start: u32, attr_size: u16, text_start: u32, text_size: u32,
+               start: u32, end: u32, text_off: u16, text_size: u32,
                token_id: TagID, flags: u8) -> Self {
         Token {
-            attributes,
-            attr_start,
-            attr_size,
-            text_start,
+            attributes: Some(attributes),
+            start,
+            end,
+            text_off,
             text_size,
             token_id,
             flags,
         }
     }
+
+    pub fn new_no_attributes(start: u32, end: u32, text_off: u16, text_size: u32,
+                             token_id: TagID, flags: u8) -> Self {
+        Token {
+            attributes: None,
+            start,
+            end,
+            text_off,
+            text_size,
+            token_id,
+            flags,
+        }
+    }
+
+    pub fn new_empty() -> Self {
+        Token {
+            attributes: None,
+            start: 0,
+            end: 0, 
+            text_off: 0,
+            text_size: 0,
+            token_id: TagID::A,
+            flags: 0,
+        }
+    }
 }
 
 #[repr(u8)]
+#[derive(Clone, Copy, Debug)]
 pub enum Flags {
     Open        = 0x00,
     Close       = 0x01,
@@ -43,6 +90,7 @@ pub enum Flags {
 }
 
 #[repr(u8)]
+#[derive(Clone, Copy, Debug)]
 pub enum TagID {
     Undef               = 0x00,
     EndOfFile           = 0x01,
@@ -189,7 +237,7 @@ pub enum TagID {
     OptGroup            = 0x8e,
     Option              = 0x8f,
     Output              = 0x90,
-    P                   = 0x91,
+    Paragraph           = 0x91,
     Param               = 0x92,
     Path                = 0x93,
     Picture             = 0x94,
@@ -242,3 +290,34 @@ pub enum TagID {
     Xmp                 = 0xc3,
     _LastEntry          = 0xc4
 }
+
+pub static ASCII_TO_TAG_ID: phf::Map<&'static [u8], TagID> = phf_map! {
+    b"a" => TagID::A,
+    b"!DOCTYPE" => TagID::EmDoctype,
+    b"body" => TagID::Body,
+    b"p" => TagID::Paragraph,
+    b"h1" => TagID::H1,
+    b"head" => TagID::Head,
+    b"div" => TagID::Div,
+    b"template" => TagID::Template,
+    b"textarea" => TagID::TextArea,
+    b"title" => TagID::Title,
+    b"script" => TagID::Script,
+    b"style" => TagID::Style,
+    b"base" => TagID::Base,
+    b"area" => TagID::Area,
+    b"br" => TagID::Br,
+    b"col" => TagID::Col,
+    b"embed" => TagID::Embed,
+    b"hr" => TagID::Hr,
+    b"img" => TagID::Img,
+    b"input" => TagID::Input,
+    b"link" => TagID::Link,
+    b"meta" => TagID::Meta,
+    b"source" => TagID::Source,
+    b"track" => TagID::Track,
+    b"wbr" => TagID::Wbr,
+    b"svg" => TagID::Svg,
+    b"math" => TagID::Math,
+    b"html" => TagID::Html,
+};
