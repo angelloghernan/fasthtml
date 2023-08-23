@@ -56,7 +56,11 @@ impl<'a> Tokenizer<'a> {
 
     fn create_empty_attribute(&mut self) {
         let attr_start = (self.position as u32 - self.cur_start) as u16;
-        self.cur_attributes.push(tokens::Attribute::new(attr_start, 0, 0, 0));
+        self.cur_attributes.push(tokens::Attribute::new(attr_start, 0, 0, 0))
+    }
+    
+    fn value_begin(position: usize, cur_start: u32) -> u16 {
+        return (position as u32 - cur_start) as u16
     }
 
     fn emit_current_token_as_text(&mut self) {
@@ -124,7 +128,13 @@ impl<'a> Tokenizer<'a> {
             State::BeforeAttributeName => self.before_attribute_name_state(),
             State::AttributeName => self.attribute_name_state(),
             State::AfterAttributeName => self.after_attribute_name_state(),
+            State::BeforeAttributeValue => self.before_attribute_value_state(),
+            State::AttributeValueDoubleQuoted => self.attribute_value_double_quoted_state(),
+            State::AttributeValueSingleQuoted => self.attribute_value_single_quoted_state(),
+            State::AttributeValueUnquoted => self.attribute_value_unquoted_state(),
             State::CharacterReference => self.character_reference_state(),
+            State::AfterAttributeValueQuoted => self.after_attribute_value_quoted_state(),
+            State::SelfClosingStartTag => self.self_closing_start_tag_state(),
             _ => unimplemented!("Reached unimplemented state {:?}", self.state),
         }
     }
@@ -318,13 +328,13 @@ impl<'a> Tokenizer<'a> {
                 b'"' => {
                     self.state = State::AttributeValueDoubleQuoted;
                     self.position += 1;
-                    attr.value_begin = self.position as u16;
+                    attr.value_begin = Self::value_begin(self.position, self.cur_start);
                     break
                 }
                 b'\'' => {
                     self.state = State::AttributeValueSingleQuoted;
                     self.position += 1;
-                    attr.value_begin = self.position as u16;
+                    attr.value_begin = Self::value_begin(self.position, self.cur_start);
                     break
                 }
                 b'>' => {
@@ -332,7 +342,7 @@ impl<'a> Tokenizer<'a> {
                 }
                 _ => {
                     self.state = State::AttributeValueUnquoted;
-                    attr.value_begin = self.position as u16;
+                    attr.value_begin = Self::value_begin(self.position, self.cur_start);
                     break
                 }
             }

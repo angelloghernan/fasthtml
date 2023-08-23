@@ -18,13 +18,6 @@ impl Attribute {
             value_size
         }
     }
-
-    pub fn clear(&mut self) {
-        self.name_begin = 0;
-        self.value_begin = 0;
-        self.name_size = 0;
-        self.value_size = 0;
-    }
 }
 
 #[derive(Debug)]
@@ -76,6 +69,46 @@ impl Token {
             token_id: TagID::A,
             flags: 0,
         }
+    }
+
+    pub fn print_self(&self, raw_html: &[u8]) {
+        let tag = unsafe {
+            let raw_tag = std::slice::from_raw_parts(raw_html.as_ptr().add(self.start as usize), 
+                                                     (self.end - self.start) as usize);
+            std::str::from_utf8_unchecked(raw_tag)
+        };
+
+        println!("Tag: {}", tag);
+
+        match &self.attributes {
+            None => {},
+            Some(attributes) => {
+                for attribute in attributes.iter() {
+                    let key = unsafe {
+                        let offset = (self.start as usize) + (attribute.name_begin as usize);
+                        let raw_key = std::slice::from_raw_parts(raw_html.as_ptr().add(offset), 
+                                                                 attribute.name_size as usize);
+                        std::str::from_utf8_unchecked(raw_key)
+                    };
+
+                    println!("Key: {}", key);
+
+                    if attribute.value_begin < attribute.name_begin {
+                        continue
+                    }
+
+                    let value = unsafe {
+                        let offset = (self.start as usize) + (attribute.value_begin as usize);
+                        let raw_value = std::slice::from_raw_parts(raw_html.as_ptr().add(offset), 
+                                                                   attribute.value_size as usize);
+                        std::str::from_utf8_unchecked(raw_value)
+                    };
+
+                    println!("Value: {}", value)
+                }
+            }
+        }
+
     }
 }
 
